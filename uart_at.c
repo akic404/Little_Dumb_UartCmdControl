@@ -15,7 +15,7 @@ char LD_uart_buffer_copy[LD_uart_buffer_size];
 /*
 
 */
-CmdEntry cmd_table[] = { //指令关键词和指令函数结构体列表
+LD_CmdArrayNode cmd_array[] = { //指令关键词和指令函数结构体列表
     /*{"命令1","命令2",1/0是否带参数,函数指针}*/
 	{"AT","CMD",1,cmd_fuc},    // 例如：AT+LED=ON → 调用 handle_led("ON")
 	{"AT","VALUE",1,value_fuc},
@@ -48,7 +48,7 @@ void LD_init(){
     //TODO:初始化未设计完成
 }
 void LD_cmd_put_in_tree(){
-    uint16_t array_size = sizeof()/sizeof()
+    uint16_t array_size = sizeof(cmd_array)/sizeof(LD_CmdArrayNode);
     //TODO:压入树功能未完成
 }
 void LD_uart_idle_interrupt_process(){
