@@ -1,6 +1,6 @@
 #ifndef __UART_AT_H__
 #define __UART_AT_H__
-
+#include <stdint.h>
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -12,7 +12,7 @@ extern "C" {
 typedef struct{
     const char* val;
     LD_CmdTreeNode** childs;
-    int childs_size;
+    int number_of_childs;
 	void (*callback)(char*);     //回调函数，TODO:后期改为可变参数，并增加参数数量验证
 }LD_CmdTreeNode;
 
