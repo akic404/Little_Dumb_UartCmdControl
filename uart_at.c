@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "uart_at.h"
+#include <stdio.h>
 // #include "main.h"
 /*本程序使用LD_前缀作为内部命名空间前缀*/
 
@@ -48,7 +49,8 @@ void LD_cmd_put_in_tree(){//指令表压入树
     uint16_t cmd_array_node_size = sizeof(LD_cmd_array)/sizeof(LD_CmdArrayNode);//计算并存储有多少条命令
 
     uint8_t* used_main_index = calloc(cmd_array_node_size,sizeof(uint8_t));//建立此数组用于记录每条命令中的main部分是否已经被压入树
-    //FIXME:添加返回值判断
+    if(used_main_index==NULL)LD_malloc_error_handler();//检测是否分配失败
+
 
     uint16_t number_of_childs = 10;//记录分配的空间大小,注意每次处理到一个新节点的childs时都要重置到10
 
@@ -68,12 +70,14 @@ void LD_cmd_put_in_tree(){//指令表压入树
             if ((float)number_of_childs*0.8<root.number_of_childs+1){
                 number_of_childs *=2;
                 root.childs = realloc(root.childs,number_of_childs*sizeof(LD_CmdTreeNode*));
-                //FIXME:添加返回值判断
+                if(root.childs==NULL)LD_malloc_error_handler();//检测是否分配失败
+
             }
 
             //添加到root.childs
             root.childs[root.number_of_childs] = calloc(1,sizeof(LD_CmdTreeNode));//开辟一个新的树节点空间 并返回其指针到root.childs这个 树节点指针数组 对应的位置
-                //FIXME:添加返回值判断
+                if(root.childs[root.number_of_childs]==NULL)LD_malloc_error_handler();//检测是否分配失败
+
                 //格式化一下这个新的节点并把对应的main词赋值到val里
                 LD_cmdtreenode_init(root.childs[root.number_of_childs]);
                 root.childs[root.number_of_childs]->val = current_main;
@@ -134,4 +138,11 @@ void LD_systick_1ms(){//1ms定时服务，用于定时清理缓存区，现在�
 void LD_uart_cmd_process(){
     //TODO:先完成上面的树的部分再增加查询多叉树执行的部分
     //TODO:哦对顺带一提最好每次调用这个函数先复制一下cmd和action部分，因为我没做清理功能和这里的锁，我怕查树查到一半给我清空了，或者改为查完树再清空?
+}
+
+
+void LD_malloc_error_handler(){
+    while(1){
+        printf("LD命令库内存分配失败，程序终止");
+    }
 }
