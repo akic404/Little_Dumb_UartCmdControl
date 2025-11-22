@@ -51,9 +51,7 @@ void LD_cmd_put_in_tree(){//指令表压入树
     uint8_t* used_main_index = calloc(cmd_array_node_size,sizeof(uint8_t));//建立此数组用于记录每条命令中的main部分是否已经被压入树
     if(used_main_index==NULL)LD_malloc_error_handler();//检测是否分配失败
 
-
     uint16_t number_of_childs = 10;//记录分配的空间大小,注意每次处理到一个新节点的childs时都要重置到10
-
 
     //>>>>> 添加main层节点start >>>>>
     for(int i = 0;i<cmd_array_node_size;i++){
@@ -67,24 +65,26 @@ void LD_cmd_put_in_tree(){//指令表压入树
             const char* current_main =LD_cmd_array[i].main;
 
             //判断现有数据量是否到达阈值决定是否扩容根节点的childs空间
+            //判断方式：若加上一条命令，已占用空间是否超过总空间的0.8
+            //若超过：空间*2重新分配
             if ((float)number_of_childs*0.8<root.number_of_childs+1){
                 number_of_childs *=2;
                 root.childs = realloc(root.childs,number_of_childs*sizeof(LD_CmdTreeNode*));
                 if(root.childs==NULL)LD_malloc_error_handler();//检测是否分配失败
-
             }
 
-            //添加到root.childs
-            root.childs[root.number_of_childs] = calloc(1,sizeof(LD_CmdTreeNode));//开辟一个新的树节点空间 并返回其指针到root.childs这个 树节点指针数组 对应的位置
-                if(root.childs[root.number_of_childs]==NULL)LD_malloc_error_handler();//检测是否分配失败
+            //添加节点到root.childs数组里
+            root.childs[root.number_of_childs] = calloc(1,sizeof(LD_CmdTreeNode));//开辟一个新的 树节点 空间 并返回其指针到root.childs这个 树节点指针数组 对应的位置
+            if(root.childs[root.number_of_childs]==NULL)LD_malloc_error_handler();//检测是否分配失败
 
-                //格式化一下这个新的节点并把对应的main词赋值到val里
-                LD_cmdtreenode_init(root.childs[root.number_of_childs]);
-                root.childs[root.number_of_childs]->val = current_main;
+            //格式化一下这个新的节点并把对应的main词赋值到val里
+            LD_cmdtreenode_init(root.childs[root.number_of_childs]);
+            root.childs[root.number_of_childs]->val = current_main;
 
+            //更新“存储到root的子节点树”，此数字同时也作为索引使用，所有对新建子节点的操作需要在这行代码前执行
             root.number_of_childs++;
 
-            //给相同词语标记上已使用
+            //给相同词语标记上已使用,加快入树速度
             for (int i2 = 0; i2 < cmd_array_node_size; i2++){
                 if(strcmp(current_main,LD_cmd_array[i2].main)==0){
                     used_main_index[i2] = 1;
