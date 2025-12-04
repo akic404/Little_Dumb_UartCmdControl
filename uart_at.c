@@ -46,17 +46,17 @@ void LD_cmdtreenode_init(LD_CmdTreeNode* current){//初始化单个树节点
 
 void LD_cmd_put_in_tree(){//指令表压入树,dps逻辑
 
-    uint16_t cmd_array_node_size = sizeof(LD_cmd_array)/sizeof(LD_CmdArrayNode);//计算并存储有多少条命令
+    uint16_t cmd_array_node_quantity = sizeof(LD_cmd_array)/sizeof(LD_CmdArrayNode);//计算并存储有多少条命令
 
-    uint8_t* used_main_index = calloc(cmd_array_node_size,sizeof(uint8_t));//建立此数组用于记录每条命令中的main部分是否已经被压入树
+    uint8_t* used_main_index = calloc(cmd_array_node_quantity,sizeof(uint8_t));//建立此数组用于记录每条命令中的main部分是否已经被压入树
     if(used_main_index==NULL)LD_malloc_error_handler();//检测是否分配失败
 
-    uint8_t* used_sub_index = calloc(cmd_array_node_size,sizeof(uint8_t));//建立此数组用于记录每条命令中的sub部分是否已经被压入树
+    uint8_t* used_sub_index = calloc(cmd_array_node_quantity,sizeof(uint8_t));//建立此数组用于记录每条命令中的sub部分是否已经被压入树
     if(used_sub_index==NULL)LD_malloc_error_handler();//检测是否分配失败
 
     uint16_t space_of_root_node_childs = 10;//记录分配的空间大小
 
-    for(int i = 0;i<cmd_array_node_size;i++){
+    for(int i = 0;i<cmd_array_node_quantity;i++){
         //>>>>> 添加main层节点start >>>>>
 
         //判断当前cmd的main是否已被压入树中
@@ -65,7 +65,7 @@ void LD_cmd_put_in_tree(){//指令表压入树,dps逻辑
             continue;
         }else{//如果未使用则进行压入
 
-            //获取记录当前main使用的命令的指针
+            //获取当前正在处理的 命令的 指针，专门用于main层
             LD_CmdArrayNode* current_arraynode_for_main = &LD_cmd_array[i];
 
             //判断现有数据量是否到达阈值决定是否扩容根节点的childs空间
@@ -80,15 +80,15 @@ void LD_cmd_put_in_tree(){//指令表压入树,dps逻辑
             //添加节点到root.childs数组里
             LD_CmdTreeNode* current_treenode_level_main = calloc(1,sizeof(LD_CmdTreeNode));//开辟一个新的 树节点 空间
             if(current_treenode_level_main==NULL)LD_malloc_error_handler();//检测是否分配失败
-            root.childs[root.number_of_childs]=current_treenode_level_main;//返回其指针到root.childs这个 树节点指针数组 对应的位置
+                root.childs[root.number_of_childs]=current_treenode_level_main;//返回其指针到root.childs这个 树节点指针数组 对应的位置
 
 
-            //格式化一下这个新的节点并TODO:转移数据
+            //格式化一下这个新的节点并转移数据
             LD_cmdtreenode_init(current_treenode_level_main);
             current_treenode_level_main->val= current_arraynode_for_main->main;
 
             //给相同词语标记上已使用,加快入树速度
-            for (int i2 = 0; i2 < cmd_array_node_size; i2++){
+            for (int i2 = 0; i2 < cmd_array_node_quantity; i2++){
                 if(strcmp(current_arraynode_for_main->main,LD_cmd_array[i2].main)==0){
                     used_main_index[i2] = 1;
                 }
@@ -97,7 +97,7 @@ void LD_cmd_put_in_tree(){//指令表压入树,dps逻辑
             //>>>>> 为当前main层节点添加sub层节点start >>>>>
             uint16_t space_of_main_node_childs = 10;//用于处理main节点用
 
-            for (int j = 0; j < cmd_array_node_size; j++) {
+            for (int j = 0; j < cmd_array_node_quantity; j++) {
                 if(used_sub_index[j]==1){
                     //如果在'used_sub_index'已经记录为已使用则跳过当前这条命令
                     continue;
@@ -122,14 +122,15 @@ void LD_cmd_put_in_tree(){//指令表压入树,dps逻辑
                         if(current_treenode_level_sub==NULL)LD_malloc_error_handler();
                         current_treenode_level_main->childs[current_treenode_level_main->number_of_childs]=current_treenode_level_sub;
 
-                        //初始化并TODO:转移数据
+                        //初始化并转移数据
                         LD_cmdtreenode_init(current_treenode_level_sub);
                         current_treenode_level_sub->val = current_arraynode_for_sub->sub;
 
+                        //更新“存储到当前main的子节点数量”，++前作为索引用，++后作为子节点数量数用
                         current_treenode_level_main->number_of_childs++;
 
                         //标记sub相同的命令为已使用
-                        for(int j2 = 0;j2<cmd_array_node_size;j2++){
+                        for(int j2 = 0;j2<cmd_array_node_quantity;j2++){
                             if(used_main_index[j2]==1){//这行用于避免标记了 未使用的 main 相同 sub的命令
                                 if(strcmp(current_arraynode_for_sub->sub,LD_cmd_array[j2].sub)==0){
                                     used_sub_index[j2]=1;
@@ -146,7 +147,7 @@ void LD_cmd_put_in_tree(){//指令表压入树,dps逻辑
 
             //<<<<< 为当前main层节点添加sub层节点end <<<<<
 
-            //更新“存储到root的子节点数量”，此数字同时也作为索引使用，所有对新建main节点的操作需要在这行代码前执行,也包括在此main节点压入sub节点
+            //更新“存储到root的子节点数量”，++前作为索引用，++后作为子节点数量数用，所有对新建main节点的操作需要在这行代码前执行,也包括在此main节点压入sub节点
             root.number_of_childs++;
 
 
